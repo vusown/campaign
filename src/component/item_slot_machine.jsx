@@ -12,9 +12,9 @@ class ItemSlotMachine extends Component {
 				'IMAGE_TOP_MARGIN': 7.5,
 				'IMAGE_BOTTOM_MARGIN': 7.5,
 				'SLOT_SEPARATOR_HEIGHT': 2,
-				'SLOT_HEIGHT':  32 + 7.5 + 7.5 + 2,//this.define.IMAGE_HEIGHT + this.define.IMAGE_TOP_MARGIN + this.define.IMAGE_BOTTOM_MARGIN + this.define.SLOT_SEPARATOR_HEIGHT // how many pixels one slot image takes
+				'SLOT_HEIGHT':  32 + 7.5 + 7.5,//this.define.IMAGE_HEIGHT + this.define.IMAGE_TOP_MARGIN + this.define.IMAGE_BOTTOM_MARGIN + this.define.SLOT_SEPARATOR_HEIGHT // how many pixels one slot image takes
 				'ITEM_COUNT': 6, // item count in slots
-				'SLOT_SPEED': 13, // how many pixels per second slots roll
+				'SLOT_SPEED': 10, // how many pixels per second slots roll
 				'DRAW_OFFSET': 45, // how much draw offset in slot display from top
 			},
 			'startPx': -12*(32 + 14 + 2),
@@ -22,6 +22,7 @@ class ItemSlotMachine extends Component {
 			'refresh': 1,
 			'animation': null,
 			'result': null,
+
 		}
 		this.canvas = React.createRef();
 		this.spin = this.spin.bind(this)
@@ -73,8 +74,13 @@ class ItemSlotMachine extends Component {
 					ctx.drawImage(asset.img, (98 - this.state.define.IMAGE_HEIGHT)/2, (i + this.state.define.ITEM_COUNT) * this.state.define.SLOT_HEIGHT + this.state.define.IMAGE_TOP_MARGIN, 32, 32);
 					ctx.drawImage(asset.img, (98 - this.state.define.IMAGE_HEIGHT)/2, (i + this.state.define.ITEM_COUNT*2) * this.state.define.SLOT_HEIGHT + this.state.define.IMAGE_TOP_MARGIN, 32, 32);
 					ctx.restore();
-					ctx.fillRect(0, i * this.state.define.SLOT_HEIGHT, 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
-					ctx.fillRect(0, (i + this.state.define.ITEM_COUNT)  * this.state.define.SLOT_HEIGHT, 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
+					if (i == 0) {
+						ctx.fillRect(0, i * this.state.define.SLOT_HEIGHT, 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
+					} else {
+						ctx.fillRect(0, i * this.state.define.SLOT_HEIGHT + this.state.define.SLOT_SEPARATOR_HEIGHT , 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
+					}
+
+					ctx.fillRect(0, (i + this.state.define.ITEM_COUNT)  * this.state.define.SLOT_HEIGHT + this.state.define.SLOT_SEPARATOR_HEIGHT, 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
 					ctx.fillRect(0, (i + this.state.define.ITEM_COUNT*2)  * this.state.define.SLOT_HEIGHT, 98, this.state.define.SLOT_SEPARATOR_HEIGHT);
 				}
 			}
@@ -86,17 +92,33 @@ class ItemSlotMachine extends Component {
 
 
 	spin() {
-
-		console.log(this.state.define.SLOT_SPEED)
-		if(this.state.currentPx < (0 - this.state.define.SLOT_SPEED) ) {
-			this.canvas.current.style.transform = 'translate3d(0px, '+ this.state.currentPx +'px, 0px)'
-			this.setState({'currentPx': this.state.currentPx + this.state.define.SLOT_SPEED})
+		if(this.state.result == null) {
+			if (this.state.currentPx < (0 - this.state.define.SLOT_SPEED)) {
+				this.canvas.current.style.transform = 'translate3d(0px, ' + this.state.currentPx + 'px, 0px)'
+				this.setState({'currentPx': this.state.currentPx + this.state.define.SLOT_SPEED})
+			} else {
+				this.canvas.current.style.transform = 'translate3d(0px, ' + (this.state.startPx + (this.state.define.SLOT_SPEED + this.state.currentPx)) + 'px, 0px)'
+				this.setState({'currentPx': this.state.startPx + (2 * this.state.define.SLOT_SPEED + this.state.currentPx)})
+			}
+			this.setState({'animation': requestAnimationFrame(this.spin)})
 		} else {
-			this.canvas.current.style.transform = 'translate3d(0px, '+ (this.state.startPx + (this.state.define.SLOT_SPEED + this.state.currentPx)) +'px, 0px)'
-			this.setState({'currentPx': this.state.startPx + (2*this.state.define.SLOT_SPEED + this.state.currentPx)})
-		}
-		this.setState({'animation': requestAnimationFrame(this.spin)})
+			if(this.state.result >=  this.state.currentPx && this.state.currentPx >= this.state.result - this.state.define.SLOT_SPEED ) {
+				cancelAnimationFrame(this.state.animation)
+				this.setState({'animation': null})
+				this.canvas.current.style.transform = 'translate3d(0px, ' + this.state.result + 'px, 0px)'
+				this.setState({'result': null})
 
+			} else {
+				if (this.state.currentPx < (0 - this.state.define.SLOT_SPEED)) {
+					this.canvas.current.style.transform = 'translate3d(0px, ' + this.state.currentPx + 'px, 0px)'
+					this.setState({'currentPx': this.state.currentPx + this.state.define.SLOT_SPEED})
+				} else {
+					this.canvas.current.style.transform = 'translate3d(0px, ' + (this.state.startPx + (this.state.define.SLOT_SPEED + this.state.currentPx)) + 'px, 0px)'
+					this.setState({'currentPx': this.state.startPx + (2 * this.state.define.SLOT_SPEED + this.state.currentPx)})
+				}
+				this.setState({'animation': requestAnimationFrame(this.spin)})
+			}
+		}
 	}
 
 	componentDidMount() {
@@ -111,20 +133,20 @@ class ItemSlotMachine extends Component {
 		} else {
 			var findResult = 0;
 			setTimeout(() => {
-				if(nextProps.result) {
-					for (const key in this.state.urlimage) {
-						console.log(this.state.urlimage[key].id, nextProps.time, key)
-						if(this.state.urlimage[key].id == nextProps.result) {
+				for (const key in this.state.urlimage) {
+					console.log(this.state.urlimage[key].id, nextProps.time, key)
+					if(this.state.urlimage[key].id == nextProps.result) {
+						if(parseInt(key) == 0) {
 							findResult = parseInt(key) + this.state.urlimage.length
 							break
+						} else {
+							findResult = parseInt(key)
 						}
-					}
-					cancelAnimationFrame(this.state.animation)
-					this.setState({'animation': null})
-					this.canvas.current.style.transform = 'translate3d(0px, -'+ (findResult-1)*this.state.SLOT_HEIGHT +'px, 0px)'
 
+					}
 				}
-			}, nextProps.time);
+				this.setState({result:  - (findResult-1)*(this.state.define.SLOT_HEIGHT)-2})
+			}, this.props.time)
 		}
 	}
 
@@ -132,8 +154,7 @@ class ItemSlotMachine extends Component {
 
 		return(
 			<canvas
-				id="canvas1"
-				width={'100px'}
+				width={'98px'}
 				height={this.state.define.SLOT_HEIGHT * (this.state.define.ITEM_COUNT * 2 + 3)}
 				ref={this.canvas}
 			></canvas>
